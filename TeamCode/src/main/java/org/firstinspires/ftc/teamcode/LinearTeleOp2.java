@@ -17,6 +17,7 @@ public class LinearTeleOp2 extends LinearOpMode {
         int degrees = 105;
         double grau_motor = motorOne.getCurrentPosition();
         boolean isPressed = false;
+        boolean isPressed2 = false;
         double vel = 0.2;
 
         waitForStart();
@@ -40,8 +41,15 @@ public class LinearTeleOp2 extends LinearOpMode {
                 isPressed = true;
             }else if(!gamepad1.right_bumper){
                 isPressed = false;
+
+            if(gamepad1.left_bumper && !isPressed2){
+                vel -= 0.2;
+                isPressed2 = true;
+            }else if(!gamepad1.left_bumper) {
+                isPressed2 = false;
             }
 
         }
     }
+}
 }
