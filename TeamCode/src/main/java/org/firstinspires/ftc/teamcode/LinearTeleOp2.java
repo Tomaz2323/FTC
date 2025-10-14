@@ -8,9 +8,9 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 @TeleOp(name = "First_Teleop2")
 public class LinearTeleOp2 extends LinearOpMode {
     double vel = 0.2;
-    private static final double roda_frente = Math.toRadians(90);
-    private static final double roda_esquerda = Math.toRadians(210);
-    private static final double roda_direita = Math.toRadians(330);
+    private static final double roda_frente = Math.toRadians(0);
+    private static final double roda_esquerda = Math.toRadians(120);
+    private static final double roda_direita = Math.toRadians(240);
 
     DcMotorEx motorFrente;
     DcMotorEx motorEsquerda;
@@ -70,9 +70,10 @@ public class LinearTeleOp2 extends LinearOpMode {
         }
     }
     public void OmniDrive(double frente, double lateral, double giro){
-        double power1 = (frente * Math.sin(roda_frente) + lateral * Math.cos(roda_frente) + giro) * vel;
-        double power2 = (frente * Math.sin(roda_esquerda) + lateral * Math.cos(roda_esquerda) + giro) * vel;
-        double power3 = (frente * Math.sin(roda_direita) + lateral * Math.cos(roda_direita) + giro) * vel;
+
+        double power1 = (-Math.sin(roda_frente) * frente + Math.cos(roda_frente) * lateral + giro) * vel;
+        double power2 = (-Math.sin(roda_esquerda) * frente + Math.cos(roda_esquerda) * lateral + giro) * vel;
+        double power3 = (-Math.sin(roda_direita) * frente + Math.cos(roda_direita) * lateral + giro) * vel;
 
         double maxPower = Math.max(Math.abs(power1), Math.abs(power2));
         maxPower = Math.max(maxPower, Math.abs(power3));
