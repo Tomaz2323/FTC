@@ -14,11 +14,13 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 public class april extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException{
+
         AprilTagProcessor tagProcessor = new AprilTagProcessor.Builder()
             .setDrawAxes(true)
             .setDrawCubeProjection(true)
             .setDrawTagID(true)
             .setDrawTagOutline(true)
+            .setLensIntrinsics(467.727,467.727,322.329,240.509)
             .build();
 
         VisionPortal visionPortal = new VisionPortal.Builder()
@@ -31,7 +33,7 @@ public class april extends LinearOpMode {
 
         while (!isStopRequested() && opModeIsActive()) {
 
-            if(tagProcessor.getDetections().size() > 0){
+            if(tagProcessor.getDetections().size() > 0) {
                 AprilTagDetection tag = tagProcessor.getDetections().get(0);
 
                 telemetry.addData("x", tag.ftcPose.x);
