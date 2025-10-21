@@ -8,28 +8,31 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 @TeleOp(name = "First_Teleop2")
 public class core1 extends LinearOpMode {
-    double vel = 5;
-
     DcMotorEx core;
 
     @Override
     public void runOpMode() throws InterruptedException {
         //Initialization
-        boolean isPressed = false;
-        boolean isPressed2 = false;
 
-        core = hardwareMap.get(DcMotorEx.class, "core");
+        core = hardwareMap.get(DcMotorEx.class, "core2");
 
         core.setDirection(DcMotor.Direction.FORWARD);
 
-        core.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        core.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         waitForStart();
 
         while(opModeIsActive()){
 
-            core.setPower(vel);
-
+            if(gamepad1.a){
+                core.setPower(1);
+            }
+            if(gamepad1.b){
+                core.setPower(-1);
+            }
+            if(!gamepad1.a && !gamepad1.b){
+                core.setPower(0);
+            }
         }
     }
 
