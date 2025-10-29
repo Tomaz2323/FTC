@@ -1,27 +1,27 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.cam;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.teamcode.cam.AprilTagDetectionPipeline;
 import org.openftc.apriltag.AprilTagDetection;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 import java.util.ArrayList;
 
-@TeleOp(name = "First_Teleop2")
-public class LinearTeleOp2 extends LinearOpMode {
-    double vel = 0.4;
-    double vel2 = 0;
-    private static final double roda_frente = Math.toRadians(90);
-    private static final double roda_esquerda = Math.toRadians(210);
-    private static final double roda_direita = Math.toRadians(330);
+@Autonomous(name = "Auto Sigue AprilTag")
+public class FollowAT extends LinearOpMode {
+
+    double vel;
+    private static final double roda_frente = Math.toRadians(0);
+    private static final double roda_esquerda = Math.toRadians(120);
+    private static final double roda_direita = Math.toRadians(240);
 
     DcMotorEx motorFrente;
     DcMotorEx motorEsquerda;
@@ -47,10 +47,6 @@ public class LinearTeleOp2 extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        //Initialization
-        boolean isPressed = false;
-        boolean isPressed2 = false;
-        boolean isPressed3 = false;
 
         motorFrente = hardwareMap.get(DcMotorEx.class, "frente");
         motorEsquerda = hardwareMap.get(DcMotorEx.class, "esquerda");
@@ -63,6 +59,8 @@ public class LinearTeleOp2 extends LinearOpMode {
         motorFrente.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motorEsquerda.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motorDireita.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        vel = 0.6;
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         camera = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "camera"), cameraMonitorViewId);
@@ -87,7 +85,7 @@ public class LinearTeleOp2 extends LinearOpMode {
 
         waitForStart();
 
-        while(opModeIsActive()){
+        while (opModeIsActive()) {
 
             ArrayList<AprilTagDetection> currentDetections = aprilTagDetectionPipeline.getLatestDetections();
             AprilTagDetection targetTag = null;
@@ -99,71 +97,41 @@ public class LinearTeleOp2 extends LinearOpMode {
                 }
             }
 
-            if(gamepad1.right_bumper && !isPressed){
-                vel += 0.2;
-                isPressed = true;
-            }
-            else if(!gamepad1.right_bumper){
-                isPressed = false;
+            if (targetTag != null) {
+                double rangeError = (targetTag.pose.z - DESIRED_DISTANCE_METERS);
+                double strafeError = targetTag.pose.x;
 
-                if(gamepad1.left_bumper && !isPressed2){
-                    vel -= 0.2;
-                    isPressed2 = true;
-                }else if(!gamepad1.left_bumper) {
-                    isPressed2 = false;
-                }
+                Orientation rot = Orientation.getOrientation(targetTag.pose.R,
+                        org.firstinspires.ftc.robotcore.external.navigation.AxesReference.INTRINSIC,
+                        org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YXZ,
+                        org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS);
 
-            }
+                double headingError = rot.firstAngle;
 
-            if(gamepad1.a && !isPressed3){
-                isPressed3 = true;
-                vel2 = vel;
-                vel = 1.0;
-            }
-            else if(!gamepad1.a && isPressed3) {
-                isPressed3 = false;
-                vel = vel2;
-            }
+                double frente_power = rangeError * KP_FRENTE;
+                double lateral_power = -strafeError * KP_LATERAL;
+                double giro_power = -headingError * KP_GIRO;
 
-            else if(gamepad1.b && !isPressed3){
-                isPressed3 = true;
-                if (targetTag != null) {
-                    double rangeError = (targetTag.pose.z - DESIRED_DISTANCE_METERS);
-                    double strafeError = targetTag.pose.x;
+                OmniDrive(frente_power, lateral_power, giro_power);
 
-                    Orientation rot = Orientation.getOrientation(targetTag.pose.R,
-                            org.firstinspires.ftc.robotcore.external.navigation.AxesReference.INTRINSIC,
-                            org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YXZ,
-                            org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS);
+                telemetry.addLine("Tag Alvo Detectado!");
+                telemetry.addData("Erro Dist (m)", "%.2f", rangeError);
+                telemetry.addData("Erro Strafe (m)", "%.2f", strafeError);
+                telemetry.addData("Erro Giro (rad)", "%.2f", headingError);
 
-                    double headingError = rot.firstAngle;
+            } else {
+                OmniDrive(0, 0, 0);
 
-                    double frente_power = rangeError * KP_FRENTE;
-                    double lateral_power = -strafeError * KP_LATERAL;
-                    double giro_power = -headingError * KP_GIRO;
-
-                    OmniDrive(frente_power, lateral_power, giro_power);
-
-                    telemetry.addLine("Tag Alvo Detectado!");
-                } else if (!gamepad1.b && isPressed3) {
-                isPressed3 = false;
-                }
+                telemetry.addLine("Procurando Tag ID: " + TARGET_TAG_ID);
             }
 
-            vel = Math.min(Math.max(vel, 0.2), 1);
-
-            double frente = gamepad1.left_stick_y;
-            double lateral = gamepad1.left_stick_x;
-            double giro = gamepad1.right_stick_x;
-
-            OmniDrive(frente, lateral, giro);
-
-            telemetry.addData("Velocidade do robô:", vel);
             telemetry.update();
-
         }
+
+        OmniDrive(0, 0, 0);
     }
-    public void OmniDrive(double frente, double lateral, double giro){
+
+    public void OmniDrive(double frente, double lateral, double giro) {
 
         double power1 = (-Math.sin(roda_frente) * frente + Math.cos(roda_frente) * lateral + giro) * vel;
         double power2 = (-Math.sin(roda_esquerda) * frente + Math.cos(roda_esquerda) * lateral + giro) * vel;
@@ -178,14 +146,12 @@ public class LinearTeleOp2 extends LinearOpMode {
             power3 /= maxPower;
         }
 
-        motorFrente.setPower(power1);
-        motorEsquerda.setPower(power2);
-        motorDireita.setPower(power3);
+        motorFrente.setPower(-power1);
+        motorEsquerda.setPower(-power2);
+        motorDireita.setPower(-power3);
 
         telemetry.addData("Power frente:", power1);
         telemetry.addData("Power esquerda:", power2);
         telemetry.addData("Power direita:", power3);
-
     }
 }
-
