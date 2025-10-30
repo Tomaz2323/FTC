@@ -2,8 +2,10 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
@@ -26,6 +28,12 @@ public class LinearTeleOp2 extends LinearOpMode {
     DcMotorEx motorFrente;
     DcMotorEx motorEsquerda;
     DcMotorEx motorDireita;
+    DcMotorEx shooter;
+
+    CRServo servoIntake;
+    CRServo servoIntake2;
+    CRServo servoIntake3;
+    Servo servoOutake;
 
     OpenCvCamera camera;
     AprilTagDetectionPipeline aprilTagDetectionPipeline;
@@ -55,11 +63,19 @@ public class LinearTeleOp2 extends LinearOpMode {
         motorFrente = hardwareMap.get(DcMotorEx.class, "frente");
         motorEsquerda = hardwareMap.get(DcMotorEx.class, "esquerda");
         motorDireita = hardwareMap.get(DcMotorEx.class, "direta");
+        shooter = hardwareMap.get(DcMotorEx.class, "shooter");
+
+        servoIntake = hardwareMap.get(CRServo.class, "servoIntake");
+        servoIntake2 = hardwareMap.get(CRServo.class, "servoIntake2");
+        servoIntake3 = hardwareMap.get(CRServo.class, "servoIntake3");
+
+        servoOutake = hardwareMap.get(Servo.class, "servoOutake");
 
         motorFrente.setDirection(DcMotor.Direction.FORWARD);
         motorEsquerda.setDirection(DcMotor.Direction.FORWARD);
         motorDireita.setDirection(DcMotor.Direction.FORWARD);
 
+        shooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         motorFrente.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motorEsquerda.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motorDireita.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -115,7 +131,7 @@ public class LinearTeleOp2 extends LinearOpMode {
 
             }
 
-            if(gamepad1.a && !isPressed3){
+            else if(gamepad1.a && !isPressed3){
                 isPressed3 = true;
                 vel2 = vel;
                 vel = 1.0;
@@ -150,6 +166,33 @@ public class LinearTeleOp2 extends LinearOpMode {
                 }
             }
 
+            //gamepad 2
+            if(gamepad2.a){
+                servoIntake.setPower(1);
+                servoIntake2.setPower(1);
+            }else if(!gamepad2.a){
+                servoIntake.setPower(0);
+                servoIntake2.setPower(0);
+            }
+
+            if(gamepad2.x){
+                servoIntake3.setPower(-1);
+                shooter.setPower(0.2);
+            }else if(!gamepad2.x){
+                servoIntake3.setPower(0);
+                shooter.setPower(0);
+            }
+
+            if(gamepad2.b){
+                shooter.setPower(1);
+                sleep(3000);
+                servoOutake.setPosition(0);
+
+            }
+            if(!gamepad2.b){
+                servoOutake.setPosition(0.7);
+            }
+
             vel = Math.min(Math.max(vel, 0.2), 1);
 
             double frente = gamepad1.left_stick_y;
@@ -159,6 +202,7 @@ public class LinearTeleOp2 extends LinearOpMode {
             OmniDrive(frente, lateral, giro);
 
             telemetry.addData("Velocidade do robô:", vel);
+            telemetry.addData("Servo:", servoOutake.getPosition());
             telemetry.update();
 
         }
