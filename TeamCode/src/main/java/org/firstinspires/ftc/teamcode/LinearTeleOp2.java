@@ -19,8 +19,9 @@ import java.util.ArrayList;
 
 @TeleOp(name = "First_Teleop2")
 public class LinearTeleOp2 extends LinearOpMode {
-    double vel = 0.4;
+    double vel = 0.6;
     double vel2 = 0;
+
     private static final double roda_frente = Math.toRadians(90);
     private static final double roda_esquerda = Math.toRadians(210);
     private static final double roda_direita = Math.toRadians(330);
@@ -115,33 +116,16 @@ public class LinearTeleOp2 extends LinearOpMode {
                 }
             }
 
-            if(gamepad1.right_bumper && !isPressed){
-                vel += 0.2;
-                isPressed = true;
-            }
-            else if(!gamepad1.right_bumper){
-                isPressed = false;
-
-                if(gamepad1.left_bumper && !isPressed2){
-                    vel -= 0.2;
-                    isPressed2 = true;
-                }else if(!gamepad1.left_bumper) {
-                    isPressed2 = false;
-                }
-
-            }
-
-            else if(gamepad1.a && !isPressed3){
+            if(gamepad1.a && !isPressed3){
                 isPressed3 = true;
-                vel2 = vel;
                 vel = 1.0;
             }
             else if(!gamepad1.a && isPressed3) {
                 isPressed3 = false;
-                vel = vel2;
+                vel = 0.6;
             }
 
-            else if(gamepad1.b && !isPressed3){
+            if(gamepad1.b && !isPressed3){
                 isPressed3 = true;
                 if (targetTag != null) {
                     double rangeError = (targetTag.pose.z - DESIRED_DISTANCE_METERS);
@@ -162,7 +146,7 @@ public class LinearTeleOp2 extends LinearOpMode {
 
                     telemetry.addLine("Tag Alvo Detectado!");
                 } else if (!gamepad1.b && isPressed3) {
-                isPressed3 = false;
+                    isPressed3 = false;
                 }
             }
 
@@ -170,7 +154,7 @@ public class LinearTeleOp2 extends LinearOpMode {
             if(gamepad2.a){
                 servoIntake.setPower(1);
                 servoIntake2.setPower(1);
-            }else if(!gamepad2.a){
+            }if(!gamepad2.a && !gamepad2.dpad_up){
                 servoIntake.setPower(0);
                 servoIntake2.setPower(0);
             }
@@ -178,19 +162,31 @@ public class LinearTeleOp2 extends LinearOpMode {
             if(gamepad2.x){
                 servoIntake3.setPower(-1);
                 shooter.setPower(0.2);
-            }else if(!gamepad2.x){
+            }if(!gamepad2.x && !gamepad2.dpad_up){
+                shooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 servoIntake3.setPower(0);
                 shooter.setPower(0);
             }
 
             if(gamepad2.b){
                 shooter.setPower(1);
-                sleep(3000);
-                servoOutake.setPosition(0);
+                motorFrente.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                motorDireita.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                motorEsquerda.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                sleep(1500);
+                servoOutake.setPosition(-0.2);
 
             }
             if(!gamepad2.b){
                 servoOutake.setPosition(0.7);
+                shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            }
+
+            if(gamepad2.dpad_up){
+                servoIntake3.setPower(1);
+                servoIntake2.setPower(-1);
+                servoIntake.setPower(-1);
+                shooter.setPower(-0.2);
             }
 
             vel = Math.min(Math.max(vel, 0.2), 1);
@@ -209,9 +205,15 @@ public class LinearTeleOp2 extends LinearOpMode {
     }
     public void OmniDrive(double frente, double lateral, double giro){
 
-        double power1 = (-Math.sin(roda_frente) * frente + Math.cos(roda_frente) * lateral + giro) * vel;
-        double power2 = (-Math.sin(roda_esquerda) * frente + Math.cos(roda_esquerda) * lateral + giro) * vel;
-        double power3 = (-Math.sin(roda_direita) * frente + Math.cos(roda_direita) * lateral + giro) * vel;
+        double offset = Math.toRadians(30);
+
+        double theta1 = roda_frente + offset;
+        double theta2 = roda_esquerda + offset;
+        double theta3 = roda_direita + offset;
+
+        double power1 = (-Math.sin(theta1) * frente - Math.cos(theta1) * lateral + giro) * vel;
+        double power2 = (-Math.sin(theta2) * frente - Math.cos(theta2) * lateral + giro) * vel;
+        double power3 = (-Math.sin(theta3) * frente - Math.cos(theta3) * lateral + giro) * vel;
 
         double maxPower = Math.max(Math.abs(power1), Math.abs(power2));
         maxPower = Math.max(maxPower, Math.abs(power3));
@@ -232,4 +234,3 @@ public class LinearTeleOp2 extends LinearOpMode {
 
     }
 }
-
