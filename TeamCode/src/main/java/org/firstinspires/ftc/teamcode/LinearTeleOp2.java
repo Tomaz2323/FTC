@@ -20,7 +20,7 @@ import java.util.ArrayList;
 @TeleOp(name = "First_Teleop2")
 public class LinearTeleOp2 extends LinearOpMode {
     double vel = 0.6;
-    double vel2 = 0;
+    double vel_shooter = 0.6;
 
     private static final double roda_frente = Math.toRadians(90);
     private static final double roda_esquerda = Math.toRadians(210);
@@ -169,7 +169,7 @@ public class LinearTeleOp2 extends LinearOpMode {
             }
 
             if(gamepad2.b){
-                shooter.setPower(1);
+                shooter.setPower(vel_shooter);
                 motorFrente.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
                 motorDireita.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
                 motorEsquerda.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -189,6 +189,19 @@ public class LinearTeleOp2 extends LinearOpMode {
                 shooter.setPower(-0.2);
             }
 
+            if(gamepad2.right_bumper && !isPressed2){
+                vel_shooter += 0.1;
+                isPressed2 = true;
+            }else if(!gamepad2.right_bumper && isPressed){
+                isPressed2 = false;
+            }
+            if(gamepad2.left_bumper && !isPressed2){
+                vel_shooter += -0.1;
+                isPressed2 = true;
+            }else if(!gamepad2.left_bumper && isPressed2){
+                isPressed2 = false;
+            }
+
             vel = Math.min(Math.max(vel, 0.2), 1);
 
             double frente = gamepad1.left_stick_y;
@@ -199,6 +212,7 @@ public class LinearTeleOp2 extends LinearOpMode {
 
             telemetry.addData("Velocidade do robô:", vel);
             telemetry.addData("Servo:", servoOutake.getPosition());
+            telemetry.addData("Velocidade shooter:", vel_shooter);
             telemetry.update();
 
         }

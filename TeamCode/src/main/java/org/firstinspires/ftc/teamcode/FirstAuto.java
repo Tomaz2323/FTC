@@ -22,7 +22,7 @@ import java.util.ArrayList;
 public class FirstAuto extends LinearOpMode {
 
     // ===== CONSTANTES DE CONFIGURAÇÃO =====
-    double vel = 0.6;
+    double vel = 0.2;
     private static final double roda_frente = Math.toRadians(90);
     private static final double roda_esquerda = Math.toRadians(210);
     private static final double roda_direita = Math.toRadians(330);
@@ -126,8 +126,14 @@ public class FirstAuto extends LinearOpMode {
         while(opModeIsActive()){
             // Aqui é a prog que o robô vai executar ao iniciar
             // Tá em CM
-            alignWithAprilTag();
-
+            OmniDriveByCM(-40,-0 ,0,0.4 );
+            sleep(500);
+            OmniDriveByCM(0,-70 ,0,0.4 );
+            sleep(500);
+            OmniDriveByCM(-120,0 ,0,0.4 );
+            sleep(500);
+            OmniDriveByCM(0,0 ,45,0.4 );
+            requestOpModeStop();
             /*
             servoIntake.setPower(1);
             servoIntake2.setPower(1);
@@ -249,85 +255,60 @@ public class FirstAuto extends LinearOpMode {
 
     public void alignWithAprilTag() {
         long startTime = System.currentTimeMillis();
-        long maxAlignmentTime = 10000; // 10 segundos máximo
+        long maxAlignmentTime = 10000;
 
         while (opModeIsActive() && (System.currentTimeMillis() - startTime) < maxAlignmentTime) {
+            ArrayList<AprilTagDetection> detections = aprilTagDetectionPipeline.getLatestDetections();
+            AprilTagDetection tag = null;
 
-            ArrayList<AprilTagDetection> currentDetections = aprilTagDetectionPipeline.getLatestDetections();
-            AprilTagDetection targetTag = null;
-
-            // Procurar pela tag alvo
-            for (AprilTagDetection tag : currentDetections) {
-                if (tag.id == TARGET_TAG_ID) {
-                    targetTag = tag;
+            for (AprilTagDetection t : detections) {
+                if (t.id == TARGET_TAG_ID) {
+                    tag = t;
                     break;
                 }
             }
 
-            if (targetTag != null) {
-                // Calcular erros
-                double rangeError = (targetTag.pose.z - DESIRED_DISTANCE_METERS);
-                double strafeError = targetTag.pose.x;
+            if (tag != null) {
+                // NOTA: Em alguns setups, pode ser necessário inverter a lateral
+                // Teste alternar o sinal do strafeError para ajustar o lado da lateral
+                double rangeError = -(tag.pose.z - DESIRED_DISTANCE_METERS);
 
-                // Extrair ângulo de rotação
-                Orientation rot = Orientation.getOrientation(targetTag.pose.R,
+                // Aqui está o ponto chave: inverta o sinal de strafeError se o robô se mover na diagonal errada
+                // Se está indo para a diagonal esquerda, troque para strafeError = tag.pose.x;
+                double strafeError = tag.pose.x;  // inversão do sinal de strafeError
+
+                Orientation rot = Orientation.getOrientation(
+                        tag.pose.R,
                         org.firstinspires.ftc.robotcore.external.navigation.AxesReference.INTRINSIC,
                         org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YXZ,
                         org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS);
 
                 double headingError = rot.firstAngle;
+                while (headingError > Math.PI) headingError -= 2 * Math.PI;
+                while (headingError < -Math.PI) headingError += 2 * Math.PI;
 
-                // Verificar se está dentro da tolerância
                 if (Math.abs(rangeError) < DISTANCE_TOLERANCE &&
                         Math.abs(strafeError) < LATERAL_TOLERANCE &&
                         Math.abs(headingError) < ANGLE_TOLERANCE) {
-
                     telemetry.addLine("=== ALINHAMENTO CONCLUÍDO ===");
-                    telemetry.addData("Distância", String.format("%.3f m", targetTag.pose.z));
-                    telemetry.addData("Erro Lateral", String.format("%.3f m", strafeError));
-                    telemetry.addData("Erro Angular", String.format("%.3f rad", headingError));
-                    telemetry.update();
-
                     OmniDrive(0, 0, 0);
-                    sleep(200);
                     break;
                 }
 
-                // Calcular potências com PID
-                double frente_power = rangeError * KP_FRENTE;
-                double lateral_power = -strafeError * KP_LATERAL;
-                double giro_power = -headingError * KP_GIRO;
+                double giro = Math.signum(headingError) * Math.min(Math.abs(headingError) * KP_GIRO, 0.2);
+                double frente = rangeError * KP_FRENTE;
+                double lateral = strafeError * KP_LATERAL;
 
-                // Aplicar movimento
-                OmniDrive(frente_power, lateral_power, giro_power);
+                frente = Math.max(-0.5, Math.min(0.5, frente));
+                lateral = Math.max(-0.5, Math.min(0.5, lateral));
+                giro = Math.max(-0.2, Math.min(0.2, giro));
 
-                telemetry.addLine("=== ALINHANDO COM APRIL TAG ===");
-                telemetry.addData("Tag ID", targetTag.id);
-                telemetry.addData("Distância (m)", String.format("%.3f", targetTag.pose.z));
-                telemetry.addData("Erro Frente (m)", String.format("%.3f", rangeError));
-                telemetry.addData("Erro Lateral (m)", String.format("%.3f", strafeError));
-                telemetry.addData("Erro Angular (rad)", String.format("%.3f", headingError));
-                telemetry.addData("Power Frente", String.format("%.3f", frente_power));
-                telemetry.addData("Power Lateral", String.format("%.3f", lateral_power));
-                telemetry.addData("Power Giro", String.format("%.3f", giro_power));
-                telemetry.update();
+                OmniDrive(frente, lateral, giro);
 
             } else {
-                telemetry.addLine("TAG NÃO DETECTADA!");
-                telemetry.addData("Procurando ID", TARGET_TAG_ID);
-                telemetry.update();
                 OmniDrive(0, 0, 0);
             }
-
-            sleep(20); // Pequeno delay para não sobrecarregar
-        }
-
-        // Garantir que o robô pare
-        OmniDrive(0, 0, 0);
-
-        if ((System.currentTimeMillis() - startTime) >= maxAlignmentTime) {
-            telemetry.addLine("TIMEOUT: Alinhamento não foi possível");
-            telemetry.update();
+            sleep(20);
         }
     }
 }
